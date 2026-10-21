@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { MdDelete } from "react-icons/md";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/useAuth';
 import Avatar from '../components/Avatar';
@@ -9,6 +10,8 @@ export default function ChatRoom() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const bottomRef = useRef(null);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const typingTimeoutRef = useRef(null);
 
   // 1. Listen for messages
   useEffect(() => {
@@ -49,6 +52,49 @@ export default function ChatRoom() {
     setNewMessage('');
   }
 
+  // 4. Delete message
+  async function handleDelete(messageId) {
+    if (window.confirm("Delete this message?")) {
+      try {
+        await deleteDoc(doc(db, 'messages', messageId));
+      } catch (error) {
+        console.error("Error deleting message: ", error);
+      }
+    }
+  }
+
+  // 5. Listen for who is typing
+  useEffect(() => {
+    const q = query(collection(db, 'typing'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const users = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(u => u.isTyping && u.id !== user.uid) // Don't show yourself
+        .map(u => u.name);
+      setTypingUsers(users);
+    });
+    return unsubscribe;
+  }, [user.uid]);
+
+  // 6. Handle typing
+
+  async function handleTyping(e) {
+    setNewMessage(e.target.value);
+
+    // Set typing status to true in DB
+    const typingDocRef = doc(db, 'typing', user.uid);
+    const senderName = user.displayName || (user.email ? user.email.split('@')[0] : 'Someone');
+    await setDoc(typingDocRef, { isTyping: true, name: senderName });
+
+    // Clear previous timeout if user is still typing
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    // After 3s of no typing, set isTyping to false
+    typingTimeoutRef.current = setTimeout(async () => {
+      await setDoc(typingDocRef, { isTyping: false, name: senderName });
+    }, 3000);
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col">
       <header className="bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center shrink-0">
@@ -81,9 +127,27 @@ export default function ChatRoom() {
                 )}
                 <p className="wrap-break-word">{msg.text}</p>
               </div>
+              {isMe && (
+                <button
+                  onClick={() => handleDelete(msg.id)}
+                  className="group-hover:opacity-100 text-red-400 hover:text-red-300 transition self-center px-2"
+                  title="Delete message"
+                >
+                  <MdDelete
+                    size={20}
+                    className="text-red-500 hover:text-red-700 cursor-pointer"
+                  />
+                </button>
+              )}
             </div>
           );
         })}
+        {/* Typing Indicator */}
+        {typingUsers.length > 0 && (
+          <div className="text-sm text-slate-400 italic px-2">
+            {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+          </div>
+        )}
         <div ref={bottomRef} />
       </main>
 
@@ -92,7 +156,7 @@ export default function ChatRoom() {
           <input
             type="text"
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleTyping}
             placeholder="Type a message..."
             className="flex-1 bg-slate-900 text-white px-4 py-3 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 transition"
           />
