@@ -5,7 +5,7 @@ A modern, full-stack, real-time chat application built with **React**, **Firebas
 🔗 **Live Demo:** 
 <p>
 <img src="./public/screenshot.png
-" alt="Alt text" width="50%" /></p>
+" alt="Alt text" width="50%" height="50px" /></p>
 Live server : https://chat-app-ry3f.vercel.app
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
