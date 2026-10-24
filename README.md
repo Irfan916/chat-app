@@ -18,7 +18,6 @@ Live server : https://chat-app-ry3f.vercel.app
 
 - 🔐 **Secure Authentication:** Sign up and log in using Email/Password or Google OAuth.
 - ⚡ **Real-Time Messaging:** Messages appear instantly for all users using Firebase `onSnapshot`.
-- 🚪 **Multiple Chat Rooms:** Switch between different channels (`#general`, `#gaming`, `#random`).
 - ⌨️ **Typing Indicators:** See when other users are typing with a debounced Firebase update.
 - 🗑️ **Delete Messages:** Users can hover over their own messages to delete them.
 - 👤 **Dynamic Avatars:** Displays Google profile pictures or auto-generated initial-based avatars.
